@@ -4,12 +4,13 @@
   fetchPypi,
   python,
   pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "bitarray";
   version = "3.1.0";
-  format = "setuptools";
+  pyproject = true;
 
   disabled = pythonOlder "3.7";
 
@@ -17,6 +18,8 @@ buildPythonPackage rec {
     inherit pname version;
     hash = "sha256-cXVxcaRerFh4KGHEkTe6O+0NpIkVUxGFf2n06br4H6Q=";
   };
+
+  build-system = [ setuptools ];
 
   checkPhase = ''
     cd $out
