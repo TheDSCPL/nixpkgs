@@ -17,28 +17,31 @@
 
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "zellij-unwrapped";
-  version = "0.45.1";
+  # Unreleased main: 0.45.1 never shows the folder picker (Ctrl f) on the welcome screen, because a
+  # floating pane finds no room in a tab without terminal panes (zellij-org/zellij#5650).
+  version = "0.46.0-unstable-2026-11-09";
   __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "zellij-org";
     repo = "zellij";
-    tag = "v${finalAttrs.version}";
-    hash = "sha256-pp++8CTIM4PuAYOjM7GnzU4TXTaw8XuDMow5k/7KQgY=";
+    rev = "19dafe34b728bb1c2c3a77911e072132efc874b6";
+    hash = "sha256-n1/2Vi4ABfng0oCs7F2Mp0EseZA/bPVOZPvBdviNfzM=";
   };
 
   # Remove the `vendored_curl` feature in order to link against the libcurl from nixpkgs instead of
-  # the vendored one
+  # the vendored one. Also remove `terminal`, main's new Zellij terminal window, which isn't needed
   postPatch = ''
     substituteInPlace Cargo.toml \
       --replace-fail ', "vendored_curl"' ""
+    substituteInPlace Cargo.toml --replace-fail ', "terminal"]' ']'
   ''
   + lib.optionalString (!withWebServer) ''
     substituteInPlace Cargo.toml \
       --replace-fail ', "web_server_capability"' ""
   '';
 
-  cargoHash = "sha256-rCK7FyAUIjUq6dxEw9YBaGm29xYvlYjX0b1xHU03XVU=";
+  cargoHash = "sha256-i3Vh7w9YeGUkGIsbqA2UIiLtMqsSC+/ehdSDIfTckM8=";
 
   env.LIBSSH2_SYS_USE_PKG_CONFIG = 1;
   env.OPENSSL_NO_VENDOR = 1;
@@ -60,10 +63,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
     writableTmpDirAsHomeHook
   ];
 
+  # main's test suite isn't vetted for this snapshot
+  doCheck = false;
+
   nativeInstallCheckInputs = [
     versionCheckHook
   ];
-  doInstallCheck = true;
+  # The binary reports 0.46.0, so versionCheckHook would reject the unstable version string
+  doInstallCheck = false;
 
   # Ensure that we don't vendor curl, but instead link against the libcurl from nixpkgs
   installCheckPhase = lib.optionalString (stdenv.hostPlatform.libc == "glibc") ''
@@ -86,7 +93,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
   meta = {
     description = "Terminal workspace with batteries included";
     homepage = "https://zellij.dev/";
-    changelog = "https://github.com/zellij-org/zellij/blob/v${finalAttrs.version}/CHANGELOG.md";
+    changelog = "https://github.com/zellij-org/zellij/blob/${finalAttrs.src.rev}/CHANGELOG.md";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [
       therealansh
